@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
@@ -12,6 +13,9 @@ SDL_Window* gWindow = NULL;
 
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
+
+// Particle texture
+SDL_Texture* particleTexture = NULL;
 
 // Vector2 class
 class Vector2 {
@@ -30,21 +34,21 @@ class Vector2 {
         float y;
 
         Vector2 operator+(const Vector2& v) {
-            printf("x: %f, y: %f, v.x: %f, v.y: %f\n", this->x, this->y, v.x, v.y);
+            // printf("x: %f, y: %f, v.x: %f, v.y: %f\n", this->x, this->y, v.x, v.y);
             return Vector2(this->x + v.x, this->y + v.y);
         }
 
-        // Vector2 operator-(const Vector2& v) {
-        //     return Vector2(this->x - v.x, this->y - v.y);
-        // }
+        Vector2 operator-(const Vector2& v) {
+            return Vector2(this->x - v.x, this->y - v.y);
+        }
         
         Vector2 operator*(const float& f) {
             return Vector2(this->x * f, this->y * f);
         }
         
-        // Vector2 operator/(const float& f) {
-        //     return Vector2(this->x / f, this->y / f);
-        // }
+        Vector2 operator/(const float& f) {
+            return Vector2(this->x / f, this->y / f);
+        }
 };
 
 class Particle {
@@ -126,6 +130,12 @@ bool init() {
 			}
 
 			else {
+                particleTexture = IMG_LoadTexture(gRenderer, "particle.png");
+                if(particleTexture == NULL) {
+                    printf("Unable to load particle texture! SDL Error: %s\n", SDL_GetError());
+                    success = false;
+                }
+
 				// Initialize renderer color
 				SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
             }
@@ -221,6 +231,9 @@ int main( int argc, char* args[] ) {
                 float y = int(particles[i].position.y);
                 SDL_RenderDrawLine(gRenderer, x - 10, y, x + 10, y);
                 SDL_RenderDrawLine(gRenderer, x, y + 10, x, y - 10);
+                SDL_Rect rect = { int(x - 15), int(y - 15), 30, 30 };
+                // SDL_RenderDrawRect(gRenderer, &rect);
+                SDL_RenderCopy(gRenderer, particleTexture, NULL, &rect); 
                 // SDL_RenderDrawPoint(gRenderer, ), int(particles[i].position.y));
             }
 
