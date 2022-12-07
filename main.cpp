@@ -20,6 +20,7 @@ class Vector2 {
             x = 0;
             y = 0;
         }
+        
         Vector2(float x, float y) {
             this->x = x;
             this->y = y;
@@ -29,16 +30,73 @@ class Vector2 {
         float y;
 
         Vector2 operator+(const Vector2& v) {
+            printf("x: %f, y: %f, v.x: %f, v.y: %f\n", this->x, this->y, v.x, v.y);
             return Vector2(this->x + v.x, this->y + v.y);
         }
-        Vector2 operator-(const Vector2& v) {
-            return Vector2(this->x - v.x, this->y - v.y);
-        }
+
+        // Vector2 operator-(const Vector2& v) {
+        //     return Vector2(this->x - v.x, this->y - v.y);
+        // }
+        
         Vector2 operator*(const float& f) {
             return Vector2(this->x * f, this->y * f);
         }
-        Vector2 operator/(const float& f) {
-            return Vector2(this->x / f, this->y / f);
+        
+        // Vector2 operator/(const float& f) {
+        //     return Vector2(this->x / f, this->y / f);
+        // }
+};
+
+class Particle {
+    public:
+        Particle() {
+            this->position = Vector2();
+            this->velocity = Vector2();
+            this->acceleration = Vector2();
+        }
+        
+        Particle(Vector2 position) {
+            this->position = position;
+            this->velocity = Vector2();
+            this->acceleration = Vector2();
+        }
+
+        Particle(Vector2 position, Vector2 velocity, Vector2 acceleration) {
+            this->position = position;
+            this->velocity = velocity;
+            this->acceleration = acceleration;
+        }
+
+        Vector2 position;
+        Vector2 velocity;
+        Vector2 acceleration;
+
+        void bounce_off_walls() {
+            if (this->position.x < 0) {
+                this->position.x = 0;
+                this->velocity.x = -this->velocity.x;
+            }
+            if (this->position.x > SCREEN_WIDTH) {
+                this->position.x = SCREEN_WIDTH;
+                this->velocity.x = -this->velocity.x;
+            }
+            if (this->position.y < 0) {
+                this->position.y = 0;
+                this->velocity.y = -this->velocity.y;
+            }
+            if (this->position.y > SCREEN_HEIGHT) {
+                this->position.y = SCREEN_HEIGHT;
+                this->velocity.y = -this->velocity.y;
+            }
+        }
+
+        void update(float dt) {
+            this->bounce_off_walls();
+            printf("position: %f, %f\n", this->position.x, this->position.y);
+            printf("velocity: %f, %f\n", this->velocity.x, this->velocity.y);
+            printf("acceleration: %f, %f\n", this->acceleration.x, this->acceleration.y);
+            this->velocity = this->velocity + this->acceleration * dt;
+            this->position = this->position + this->velocity;
         }
 };
 
@@ -60,7 +118,7 @@ bool init() {
         }
 
         else {
-			//Create renderer for window
+			// Create renderer for window
 			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_SOFTWARE  );
 			if(gRenderer == NULL) {
 				printf("Renderer could not be created! SDL Error: %s\n", SDL_GetError());
@@ -68,8 +126,8 @@ bool init() {
 			}
 
 			else {
-				//Initialize renderer color
-				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
+				// Initialize renderer color
+				SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
             }
         }
     }
@@ -93,9 +151,16 @@ int main( int argc, char* args[] ) {
     Vector2 field[SCREEN_WIDTH][SCREEN_HEIGHT];
     for(int x = 0; x < SCREEN_WIDTH; x++) {
         for(int y = 0; y < SCREEN_HEIGHT; y++) {
-            float k = 0.8;
-            field[x][y] = Vector2((1 - k) * sin(float(x) / 30) + k * sin(float(y) / 30), (1 - k) * sin(float(x) / 30) - k * cos(float(y) / 30)) * 10;
+            // float k = 0.8;
+            // float l = 50;
+            // field[x][y] = Vector2((1 - k) * sin(float(x) / l) + k * sin(float(y) / l), (1 - k) * sin(float(x) / l) - k * cos(float(y) / l)) * 10;
+            field[x][y] = Vector2(0, 9.8);
         }
+    }
+
+    Particle particles[10];
+    for(int i = 0; i < 10; i++) {
+        particles[i] = Particle(Vector2(SCREEN_WIDTH / 15 * i + 50, SCREEN_HEIGHT / 2));
     }
 
     if(!init()) {
@@ -108,6 +173,7 @@ int main( int argc, char* args[] ) {
         SDL_Event e;
         
         while (!quit) {
+            uint32_t frame_start = SDL_GetTicks();
 
             // Handle events on queue
             while(SDL_PollEvent(&e) != 0) {
@@ -116,6 +182,13 @@ int main( int argc, char* args[] ) {
                 }
 
                 // event handling for objects
+            }
+
+            // update particles
+            for(int i = 0; i < 10; i++) {
+                particles[i].bounce_off_walls();
+                particles[i].acceleration = field[int(particles[i].position.x)][int(particles[i].position.y)];
+                particles[i].update(1.0 / 60);
             }
 
             // Clear screen
@@ -141,8 +214,23 @@ int main( int argc, char* args[] ) {
                 }
             }
 
+            // Draw Particles
+            for (int i = 0; i < 10; i++) {
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);
+                float x = int(particles[i].position.x);
+                float y = int(particles[i].position.y);
+                SDL_RenderDrawLine(gRenderer, x - 10, y, x + 10, y);
+                SDL_RenderDrawLine(gRenderer, x, y + 10, x, y - 10);
+                // SDL_RenderDrawPoint(gRenderer, ), int(particles[i].position.y));
+            }
+
             // Update screen
             SDL_RenderPresent(gRenderer);
+
+            // Cap frame rate to 60 FPS
+            while(SDL_GetTicks() - frame_start < 1000 / 60) {
+                SDL_Delay(1);
+            }
         }
     }
     
