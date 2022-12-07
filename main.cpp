@@ -61,7 +61,7 @@ bool init() {
 
         else {
 			//Create renderer for window
-			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED );
+			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_SOFTWARE  );
 			if(gRenderer == NULL) {
 				printf("Renderer could not be created! SDL Error: %s\n", SDL_GetError());
                 success = false;
@@ -71,15 +71,6 @@ bool init() {
 				//Initialize renderer color
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
             }
-
-            // Get window surface
-            // screenSurface = SDL_GetWindowSurface(gWindow);
- 
-            // Fill the surface white
-            // SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-           
-            // Update the surface
-            // SDL_UpdateWindowSurface(gWindow);
         }
     }
 
@@ -99,7 +90,13 @@ int main( int argc, char* args[] ) {
     SDL_Surface* screenSurface = NULL;
 
     // Create a vector field describing forces, initalized with gravity
-    Vector2 field[SCREEN_WIDTH][SCREEN_HEIGHT] = { Vector2(0, -9.8) };
+    Vector2 field[SCREEN_WIDTH][SCREEN_HEIGHT];
+    for(int x = 0; x < SCREEN_WIDTH; x++) {
+        for(int y = 0; y < SCREEN_HEIGHT; y++) {
+            float k = 0.8;
+            field[x][y] = Vector2((1 - k) * sin(float(x) / 30) + k * sin(float(y) / 30), (1 - k) * sin(float(x) / 30) - k * cos(float(y) / 30)) * 10;
+        }
+    }
 
     if(!init()) {
 		printf( "Failed to initialize!\n" );
@@ -126,19 +123,23 @@ int main( int argc, char* args[] ) {
             SDL_RenderClear(gRenderer);
 
             // Render red filled quad
-            SDL_Rect fillRect = { SCREEN_WIDTH / 4, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
-            SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);		
-            SDL_RenderFillRect(gRenderer, &fillRect);
+            // SDL_Rect fillRect = { SCREEN_WIDTH / 4, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
+            // SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);		
+            // SDL_RenderFillRect(gRenderer, &fillRect);
             
             // Draw vector field
             for (int x = 0; x < SCREEN_WIDTH; x += 15) {
                 for (int y = 0; y < SCREEN_HEIGHT; y += 15) {
+                    // Draw crosshair at origin of vector field line
+                    SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0x00, 0xFF);
+                    SDL_RenderDrawLine(gRenderer, x - 5, y, x + 5, y);
+                    SDL_RenderDrawLine(gRenderer, x, y + 5, x, y - 5);
+                    
+                    // Draw line representing vector field at this point
                     SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
-                    // SDL_RenderDrawLine(gRenderer, x, y, x + field[x][y].x, y + field[x][y].y);
-                    SDL_RenderDrawLine(gRenderer, int(x), int(y), int(x+ 5), int(y + 5));
+                    SDL_RenderDrawLine(gRenderer, x, y, int(x + field[x][y].x), int(y + field[x][y].y));
                 }
             }
-            // SDL_RenderDrawLine(gRenderer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
             // Update screen
             SDL_RenderPresent(gRenderer);
